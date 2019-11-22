@@ -1,5 +1,6 @@
 const jsonwebtoken = require('jsonwebtoken')
 const User = require('./../models/users')
+const Question = require('./../models/questions')
 const { secret } = require('./../config')
 
 class UsersCtr {
@@ -8,19 +9,36 @@ class UsersCtr {
     const { per_page = 10 } = ctx.query
     const perPage = Math.max(per_page * 1, 1)
     const page = Math.max(ctx.query.page * 1, 1) - 1
-    ctx.body = await User.find()
+    ctx.body = await User.find({
+      name: new RegExp(ctx.query.q) //对某个字段的模糊搜索
+    })
       .select('+following')
       .limit(perPage)
       .skip(page * perPage)
   }
   async findById(ctx) {
     const { fields = '' } = ctx.query //获取？后面的传参
+    const populateStr = fields
+      .split(';')
+      .filter(f => f)
+      .map(f => {
+        if (f === 'employments') {
+          return 'employments.company employments.job'
+        }
+        if (f === 'educations') {
+          return 'educations.school educations.major'
+        }
+        return f
+      })
+      .join(' ')
     const selectFields = fields
       .split(';')
       .filter(f => f)
       .map(f => ` +${f}`)
       .join('')
-    const user = await User.findById(ctx.params.id).select(selectFields) //select 可以查出对应的字段
+    const user = await User.findById(ctx.params.id)
+      .select(selectFields)
+      .populate(populateStr) //select 可以查出对应的字段
     if (!user) {
       ctx.throw(404, '用户不存在')
     }
@@ -122,9 +140,18 @@ class UsersCtr {
       .select('+following')
       .populate('following')
     if (!user) {
-      ctx.throw(404)
+      ctx.throw(404, '该用户不存在')
     }
     ctx.body = user.following
+  }
+  async listFollowingTopics(ctx) {
+    const user = await User.findById(ctx.params.id)
+      .select('+followingTopics')
+      .populate('followingTopics')
+    if (!user) {
+      ctx.throw(404, '该用户不存在')
+    }
+    ctx.body = user.followingTopics
   }
   async checkUserExist(ctx, next) {
     const user = await User.findById(ctx.params.id)
@@ -151,9 +178,38 @@ class UsersCtr {
     }
     ctx.status = 204
   }
+  async followTopic(ctx) {
+    const me = await User.findById(ctx.state.user._id).select(
+      '+followingTopics'
+    )
+    if (!me.followingTopics.map(id => id.toString()).includes(ctx.params.id)) {
+      me.followingTopics.push(ctx.params.id)
+      me.save()
+    }
+    ctx.status = 204
+  }
+  async unfollowTopic(ctx) {
+    const me = await User.findById(ctx.state.user._id).select(
+      '+followingTopics'
+    )
+    const index = me.followingTopics
+      .map(id => id.toString())
+      .indexOf(ctx.params.id)
+    if (index > -1) {
+      me.followingTopics.splice(index, 1)
+      me.save()
+    }
+    ctx.status = 204
+  }
   async listFollowers(ctx) {
     const user = await User.find({ following: ctx.params.id })
     ctx.body = user
+  }
+  async listQuestions(ctx) {
+    const questions = await Question.find({
+      questioner: ctx.params.id
+    })
+    ctx.body = questions
   }
 }
 

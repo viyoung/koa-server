@@ -26,20 +26,23 @@ const userSchema = new Schema({
   locations: {
     type: [
       {
-        type: String
+        type: Schema.Types.ObjectId,
+        ref: 'Topic'
       }
     ],
     select: false
   },
   business: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Topic',
     select: false
   },
   employments: {
     type: [
       {
         company: {
-          type: String
+          type: Schema.Types.ObjectId,
+          ref: 'Topic'
         },
         job: {
           type: String
@@ -51,8 +54,8 @@ const userSchema = new Schema({
   educations: {
     type: [
       {
-        school: { type: String },
-        major: { type: String },
+        school: { type: Schema.Types.ObjectId, ref: 'Topic' },
+        major: { type: Schema.Types.ObjectId, ref: 'Topic' },
         diploma: {
           type: Number,
           enum: [1, 2, 3, 4, 5]
@@ -71,6 +74,10 @@ const userSchema = new Schema({
       }
     ],
     select: false
+  },
+  followingTopics: {
+    type: [{ type: Schema.Types.ObjectId, ref: 'Topic' }],
+    select: true
   }
 })
 
