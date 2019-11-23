@@ -19,9 +19,19 @@ const {
   unfollowTopic,
   followTopic,
   listFollowers,
-  listQuestions
+  listQuestions,
+  listLikingAnswers,
+  likeAnswer,
+  unlikeAnswer,
+  listDislikingAnswers,
+  dislikeAnswer,
+  undislikeAnswer,
+  listCollectingAnswers,
+  collectingAnswer,
+  unCollectingAnswer
 } = require('./../controllers/users')
 const { checkTopicExist } = require('./../controllers/topics')
+const { checkAnswerExist } = require('./../controllers/answers')
 // 验证token的中间件
 const auth = jwt({ secret })
 
@@ -39,4 +49,32 @@ router.put('/following/:id', auth, checkUserExist, follow)
 router.delete('/unfollowing/:id', auth, checkUserExist, unfollow)
 router.put('/followingTopics/:id', auth, checkTopicExist, followTopic)
 router.delete('/unfollowingTopic/:id', auth, checkTopicExist, unfollowTopic)
+router.get('/:id/collectingAnswers', listCollectingAnswers)
+router.put('/collectingAnswers/:id', auth, checkAnswerExist, collectingAnswer)
+router.delete(
+  '/collectingAnswers/:id',
+  auth,
+  checkAnswerExist,
+  unCollectingAnswer
+)
+//赞的相关接口
+router.get('/:id/likingAnswers', listLikingAnswers)
+router.put(
+  '/likingAnswers/:id',
+  auth,
+  checkAnswerExist,
+  likeAnswer,
+  undislikeAnswer
+)
+router.delete('/likingAnswers/:id', auth, checkAnswerExist, unlikeAnswer)
+//踩的相关接口
+router.get('/:id/dislikingAnswers', listDislikingAnswers)
+router.put(
+  '/dislikingAnswers/:id',
+  auth,
+  checkAnswerExist,
+  dislikeAnswer,
+  unlikeAnswer
+)
+router.delete('/dislikingAnswers/:id', auth, checkAnswerExist, undislikeAnswer)
 module.exports = router

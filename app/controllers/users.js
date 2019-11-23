@@ -1,6 +1,7 @@
 const jsonwebtoken = require('jsonwebtoken')
 const User = require('./../models/users')
 const Question = require('./../models/questions')
+const Answer = require('./../models/answers')
 const { secret } = require('./../config')
 
 class UsersCtr {
@@ -144,6 +145,13 @@ class UsersCtr {
     }
     ctx.body = user.following
   }
+  async checkUserExist(ctx, next) {
+    const user = await User.findById(ctx.params.id)
+    if (!user) {
+      ctx.throw(404, '用户不存在')
+    }
+    await next()
+  }
   async listFollowingTopics(ctx) {
     const user = await User.findById(ctx.params.id)
       .select('+followingTopics')
@@ -153,14 +161,6 @@ class UsersCtr {
     }
     ctx.body = user.followingTopics
   }
-  async checkUserExist(ctx, next) {
-    const user = await User.findById(ctx.params.id)
-    if (!user) {
-      ctx.throw(404, '用户不存在')
-    }
-    await next()
-  }
-
   async follow(ctx) {
     const me = await User.findById(ctx.state.user._id).select('+following')
     if (!me.following.map(id => id.toString()).includes(ctx.params.id)) {
@@ -210,6 +210,114 @@ class UsersCtr {
       questioner: ctx.params.id
     })
     ctx.body = questions
+  }
+  async listLikingAnswers(ctx) {
+    //赞的答案列表
+    const user = await User.findById(ctx.params.id)
+      .select('+likingAnswers')
+      .populate('likingAnswers')
+    if (!user) {
+      ctx.throw(404, '该用户不存在')
+    }
+    ctx.body = user.likingAnswers
+  }
+  async likeAnswer(ctx, next) {
+    //点赞
+    const me = await User.findById(ctx.state.user._id).select('+likingAnswers')
+    if (!me.likingAnswers.map(id => id.toString()).includes(ctx.params.id)) {
+      me.likingAnswers.push(ctx.params.id)
+      me.save()
+      await Answer.findByIdAndUpdate(ctx.params.id, { $inc: { voteCount: 1 } })
+    }
+    ctx.status = 204
+    await next()
+  }
+  async unlikeAnswer(ctx) {
+    //取消赞
+    const me = await User.findById(ctx.state.user._id).select('+likingAnswers')
+    const index = me.likingAnswers
+      .map(id => id.toString())
+      .indexOf(ctx.params.id)
+    if (index > -1) {
+      me.likingAnswers.splice(index, 1)
+      me.save()
+      await Answer.findByIdAndUpdate(ctx.params.id, { $inc: { voteCount: -1 } })
+    }
+    ctx.status = 204
+  }
+  async listDislikingAnswers(ctx) {
+    //踩答案列表
+    const user = await User.findById(ctx.params.id)
+      .select('+dislikingAnswers')
+      .populate('dislikingAnswers')
+    if (!user) {
+      ctx.throw(404, '该用户不存在')
+    }
+    ctx.body = user.dislikingAnswers
+  }
+  async dislikeAnswer(ctx, next) {
+    //踩
+    const me = await User.findById(ctx.state.user._id).select(
+      '+dislikingAnswers'
+    )
+    if (!me.dislikingAnswers.map(id => id.toString()).includes(ctx.params.id)) {
+      me.dislikingAnswers.push(ctx.params.id)
+      me.save()
+    }
+    ctx.status = 204
+    await next()
+  }
+  async undislikeAnswer(ctx) {
+    //取消踩
+    const me = await User.findById(ctx.state.user._id).select(
+      '+dislikingAnswers'
+    )
+    const index = me.dislikingAnswers
+      .map(id => id.toString())
+      .indexOf(ctx.params.id)
+    if (index > -1) {
+      me.dislikingAnswers.splice(index, 1)
+      me.save()
+    }
+    ctx.status = 204
+  }
+  async listCollectingAnswers(ctx) {
+    //收藏答案列表
+    const user = await User.findById(ctx.params.id)
+      .select('+collectingAnswers')
+      .populate('collectingAnswers')
+    if (!user) {
+      ctx.throw(404, '该用户不存在')
+    }
+    ctx.body = user.collectingAnswers
+  }
+  async collectingAnswer(ctx, next) {
+    //收藏答案
+    const me = await User.findById(ctx.state.user._id).select(
+      '+collectingAnswers'
+    )
+    if (
+      !me.collectingAnswers.map(id => id.toString()).includes(ctx.params.id)
+    ) {
+      me.collectingAnswers.push(ctx.params.id)
+      me.save()
+    }
+    ctx.status = 204
+    await next()
+  }
+  async unCollectingAnswer(ctx) {
+    //取消收藏答案
+    const me = await User.findById(ctx.state.user._id).select(
+      '+collectingAnswers'
+    )
+    const index = me.collectingAnswers
+      .map(id => id.toString())
+      .indexOf(ctx.params.id)
+    if (index > -1) {
+      me.collectingAnswers.splice(index, 1)
+      me.save()
+    }
+    ctx.status = 204
   }
 }
 
