@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 const { Schema, model } = mongoose
 
-const answerSchema = new Schema(
+const commentchema = new Schema(
   {
     __v: {
       type: Number,
@@ -11,7 +11,7 @@ const answerSchema = new Schema(
       type: String,
       required: true
     },
-    answerer: {
+    commentator: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -21,13 +21,21 @@ const answerSchema = new Schema(
       type: String,
       required: true
     },
-    voteCount: {
-      type: Number,
-      required: true,
-      default: 0
+    answerId: {
+      type: String,
+      required: true
+    },
+    rootCommentId: {
+      type: String,
+      required: false
+    },
+    replyTo: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: false
     }
   },
   { timestamps: true } //给字段改变添加时间戳
 )
 
-module.exports = model('Answer', answerSchema)
+module.exports = model('Comment', commentchema)
